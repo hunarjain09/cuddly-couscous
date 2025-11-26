@@ -64,11 +64,25 @@ keystroke-tracker --version
 
 Begin collecting keystroke data:
 
+**Foreground mode** (stops when terminal closes):
 ```bash
 keystroke-tracker start
+# Press Ctrl+C to stop
 ```
 
-Press `Ctrl+C` to stop tracking. Data is auto-saved every 60 seconds.
+**Background mode** (keeps running, Linux/Mac only):
+```bash
+keystroke-tracker start --daemon
+# Runs in background, survives terminal close
+
+# Check if it's running
+keystroke-tracker status
+
+# Stop when done
+keystroke-tracker stop
+```
+
+Data is auto-saved every 60 seconds.
 
 **Recommended**: Track for at least 1-2 weeks for accurate analysis.
 
@@ -223,11 +237,40 @@ keystroke-tracker export-report \
 Start tracking keystrokes.
 
 ```bash
-keystroke-tracker start [--data-file PATH]
+keystroke-tracker start [--data-file PATH] [--daemon]
 ```
 
 Options:
 - `--data-file`: Path to data file (default: `data/keystrokes.json`)
+- `--daemon, -d`: Run in background (Linux/Mac only)
+- `--pid-file`: PID file path for daemon mode (default: `data/tracker.pid`)
+- `--log-file`: Log file path for daemon mode (default: `data/tracker.log`)
+
+**Background Mode (Linux/Mac)**:
+```bash
+# Start in background
+keystroke-tracker start --daemon
+
+# Check if running
+keystroke-tracker status
+
+# Stop background tracker
+keystroke-tracker stop
+```
+
+#### `stop`
+Stop background keystroke tracker (Linux/Mac only).
+
+```bash
+keystroke-tracker stop [--pid-file PATH]
+```
+
+#### `status`
+Check if background tracker is running (Linux/Mac only).
+
+```bash
+keystroke-tracker status [--pid-file PATH] [--log-file PATH]
+```
 
 #### `stats`
 Show keystroke statistics.
