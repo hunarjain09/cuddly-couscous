@@ -503,5 +503,54 @@ def export_report(data_file, output):
         console.print(f"[red]Error: Data file not found: {data_file}[/red]")
 
 
+@cli.command()
+@click.option('--data-file', default='data/keystrokes.json', help='Data file path')
+@click.option('--output', default='exports/heatmap.png', help='Output image file')
+@click.option('--type', 'heatmap_type', default='keyboard',
+              type=click.Choice(['keyboard', 'voyager']),
+              help='Heatmap type')
+def generate_heatmap(data_file, output, heatmap_type):
+    """Generate keyboard usage heatmap"""
+    try:
+        from keystroke_tracker.visualizers.heatmap import KeyboardHeatmap, VoyagerHeatmap
+
+        console.print(f"\n[bold]Generating {heatmap_type} heatmap...[/bold]\n")
+
+        # Load data
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+
+        key_counts = data.get('keys', {})
+
+        if not key_counts:
+            console.print("[red]No keystroke data found. Start tracking first![/red]")
+            return
+
+        # Create output directory
+        os.makedirs(os.path.dirname(output), exist_ok=True)
+
+        # Generate appropriate heatmap
+        if heatmap_type == 'keyboard':
+            heatmap = KeyboardHeatmap(key_counts)
+            heatmap.generate_heatmap(output)
+        else:  # voyager
+            heatmap = VoyagerHeatmap(key_counts)
+            heatmap.generate_split_heatmap(output)
+
+        console.print(f"[green]✓ Heatmap saved to: {output}[/green]")
+        console.print(f"\nTop 5 most used keys:")
+        sorted_keys = sorted(key_counts.items(), key=lambda x: x[1], reverse=True)
+        for key, count in sorted_keys[:5]:
+            console.print(f"  • {key}: {count:,}")
+
+    except FileNotFoundError:
+        console.print(f"[red]Error: Data file not found: {data_file}[/red]")
+    except ImportError as e:
+        console.print(f"[red]Error: Missing dependency for visualization[/red]")
+        console.print(f"[yellow]Install matplotlib: pip install matplotlib[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error generating heatmap: {e}[/red]")
+
+
 if __name__ == '__main__':
     cli()

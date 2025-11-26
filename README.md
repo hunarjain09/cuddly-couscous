@@ -355,6 +355,20 @@ keystroke-tracker export-report \
     [--data-file PATH]
 ```
 
+#### `generate-heatmap`
+Generate visual heatmap of keyboard usage.
+
+```bash
+keystroke-tracker generate-heatmap \
+    [--type TYPE] \
+    [--output PATH] \
+    [--data-file PATH]
+```
+
+Options:
+- `--type`: keyboard or voyager (default: keyboard)
+- `--output`: Output PNG file (default: exports/heatmap.png)
+
 ## 📁 Project Structure
 
 ```
