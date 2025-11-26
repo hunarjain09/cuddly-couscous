@@ -36,16 +36,110 @@ def cli():
 
 @cli.command()
 @click.option('--data-file', default='data/keystrokes.json', help='Data file path')
-def start(data_file):
+@click.option('--daemon', '-d', is_flag=True, help='Run in background as daemon')
+@click.option('--pid-file', default='data/tracker.pid', help='PID file path (daemon mode)')
+@click.option('--log-file', default='data/tracker.log', help='Log file path (daemon mode)')
+def start(data_file, daemon, pid_file, log_file):
     """Start tracking keystrokes"""
-    console.print("[bold green]Starting keystroke tracker...[/bold green]")
-    tracker = KeystrokeTracker(data_file=data_file)
 
-    try:
-        tracker.start()
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Tracking stopped by user[/yellow]")
-        tracker.stop()
+    if daemon:
+        # Run in background
+        import sys
+        import platform
+
+        if platform.system() == 'Windows':
+            console.print("[red]Error: Daemon mode not supported on Windows[/red]")
+            console.print("[yellow]Use 'pythonw' to run without console window instead[/yellow]")
+            return
+
+        from keystroke_tracker.daemon import KeystrokeTrackerDaemon
+
+        # Create daemon
+        tracker_daemon = KeystrokeTrackerDaemon(
+            pidfile=pid_file,
+            data_file=data_file,
+            logfile=log_file
+        )
+
+        console.print("[bold green]Starting keystroke tracker in background...[/bold green]")
+        console.print(f"PID file: {pid_file}")
+        console.print(f"Log file: {log_file}")
+        console.print(f"Data file: {data_file}")
+        console.print("\nTo stop: keystroke-tracker stop")
+        console.print("To check status: keystroke-tracker status")
+
+        tracker_daemon.start()
+
+    else:
+        # Run in foreground
+        console.print("[bold green]Starting keystroke tracker...[/bold green]")
+        console.print("Press Ctrl+C to stop")
+        tracker = KeystrokeTracker(data_file=data_file)
+
+        try:
+            tracker.start()
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Tracking stopped by user[/yellow]")
+            tracker.stop()
+
+
+@cli.command()
+@click.option('--pid-file', default='data/tracker.pid', help='PID file path')
+def stop(pid_file):
+    """Stop background keystroke tracker"""
+    import sys
+    import platform
+
+    if platform.system() == 'Windows':
+        console.print("[red]Error: Daemon mode not supported on Windows[/red]")
+        return
+
+    from keystroke_tracker.daemon import KeystrokeTrackerDaemon
+
+    tracker_daemon = KeystrokeTrackerDaemon(
+        pidfile=pid_file,
+        data_file='data/keystrokes.json'  # Not used for stop
+    )
+
+    console.print("[yellow]Stopping background tracker...[/yellow]")
+    tracker_daemon.stop()
+    console.print("[green]✓ Tracker stopped[/green]")
+
+
+@cli.command()
+@click.option('--pid-file', default='data/tracker.pid', help='PID file path')
+@click.option('--log-file', default='data/tracker.log', help='Log file path')
+def status(pid_file, log_file):
+    """Check if background tracker is running"""
+    import os
+    import platform
+
+    if platform.system() == 'Windows':
+        console.print("[yellow]Daemon mode not available on Windows[/yellow]")
+        return
+
+    from keystroke_tracker.daemon import KeystrokeTrackerDaemon
+
+    tracker_daemon = KeystrokeTrackerDaemon(
+        pidfile=pid_file,
+        data_file='data/keystrokes.json'
+    )
+
+    console.print("\n[bold]Keystroke Tracker Status[/bold]\n")
+
+    is_running = tracker_daemon.status()
+
+    # Show log file tail if running
+    if is_running and os.path.exists(log_file):
+        console.print(f"\nRecent log entries ({log_file}):")
+        console.print("-" * 60)
+        try:
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+                for line in lines[-10:]:  # Last 10 lines
+                    print(line.rstrip())
+        except Exception as e:
+            console.print(f"[yellow]Could not read log file: {e}[/yellow]")
 
 
 @cli.command()
